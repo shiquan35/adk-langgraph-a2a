@@ -13,6 +13,7 @@ from sales_data_agent.observability import log_event
 from sales_data_agent.validation import validate_rows
 
 
+# tool 1
 def read_and_check(state: GraphState) -> GraphState:
     started = perf_counter()
     run_id = uuid4().hex
@@ -48,10 +49,12 @@ def read_and_check(state: GraphState) -> GraphState:
     return update
 
 
+# tool 2
 def route_file(state: GraphState) -> Literal["validate", "assemble"]:
     return "assemble" if state.get("file_error") is not None else "validate"
 
 
+# tool 3
 def validate(state: GraphState) -> GraphState:
     started = perf_counter()
     run_id = state.get("run_id")
@@ -167,6 +170,7 @@ def assemble(state: GraphState) -> GraphState:
     }
 
 
+# build and compile agent
 def build_graph():
     builder = StateGraph(GraphState, input_schema=GraphInput, output_schema=Result)
     builder.add_node("read", read_and_check)
