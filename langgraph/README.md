@@ -1,5 +1,53 @@
 # Building agents using LangGraph
 
+## Combined sales pipeline
+
+Run `uv sync`, then `uv run sales-pipeline` from the repository root to prepare
+the shared sales dataset and generate the monthly sales amount chart in one run.
+No intermediate JSON file is created; a parent LangGraph invokes both compiled
+child graphs sequentially in memory.
+
+```sh
+uv run sales-pipeline
+uv run sales-pipeline --csv-path dataset/shared_sales_dataset.csv --output langgraph/outputs/custom.html
+```
+
+The CSV defaults to `dataset/shared_sales_dataset.csv` and the HTML to
+`langgraph/outputs/monthly_sales_amount.html`. Relative paths resolve from the
+repository root. The chart remains offline-capable and is not opened automatically.
+The standalone `sales-data` and `sales-chart` commands remain available.
+
+Stdout contains one compact JSON line with `status`, `preparation_result`,
+`chart_result`, and `error`. Child results are retained unchanged, including
+quarantines, normalization audit, monthly totals, and chart provenance. Errors
+have `stage` (`preparation` or `chart`), `code`, and `message`.
+
+- Exit **0**: `completed`, clean chart generated.
+- Exit **1**: `completed_with_warnings`, partial-data chart generated.
+- Exit **2**: `failed`, preparation/no-data/chart failure.
+
+Failed or empty preparation skips chart generation and returns null
+`chart_result`; no-data errors use `no_valid_records`. Expected child errors
+retain the child's error code/message. Unexpected child exceptions use
+`unexpected_stage_error`, preserve earlier results, and set the throwing child's
+result to null. Existing HTML remains unchanged on normal preparation/render
+failures; unexpected failures after side effects do not promise rollback.
+
+```python
+from sales_pipeline_agent import graph
+
+result = graph.invoke({})
+# Optional input keys: csv_path and output_path (strings or None).
+```
+
+Parent wrappers forward LangGraph execution configuration for callbacks and
+tracing. Parent/child diagnostics go to stderr with a shared `pipeline_run_id`
+and the children's own `run_id` values. Unexpected exceptions include stack
+evidence in logs, not stdout; arbitrary exception messages are excluded. Enable
+DEBUG on the agent loggers for safe node argument/result previews. Programmatic
+use never configures handlers; the CLI restores logger settings after execution.
+There are no automatic retries, added timeouts, streaming CLI, or checkpoints.
+
 ## Sales CSV preparation agent
 
 From the repository root, run `uv sync` and activate the environment with

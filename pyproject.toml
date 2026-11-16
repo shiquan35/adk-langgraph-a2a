@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 sales-data = "sales_data_agent.cli:main"
 sales-chart = "sales_chart_agent.cli:main"
+sales-pipeline = "sales_pipeline_agent.cli:main"
 
 [dependency-groups]
 dev = ["pandas-stubs", "pyright", "pytest", "ruff"]
@@ -24,7 +25,7 @@ requires = ["uv_build>=0.9.21,<0.10"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["sales_data_agent", "sales_chart_agent"]
+module-name = ["sales_data_agent", "sales_chart_agent", "sales_pipeline_agent"]
 module-root = "langgraph/src"
 
 [tool.pytest.ini_options]
