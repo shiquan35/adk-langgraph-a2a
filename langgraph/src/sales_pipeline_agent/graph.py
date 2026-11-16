@@ -55,6 +55,7 @@ def unexpected_error(stage: Stage, pipeline_id: str, exc: Exception) -> Error:
     }
 
 
+# invokes agent 1
 def prepare(state: GraphState, config: RunnableConfig) -> GraphState:
     started = perf_counter()
     pipeline_id = uuid4().hex
@@ -143,6 +144,7 @@ def route_preparation(state: GraphState) -> Literal["chart", "assemble"]:
     return "assemble" if state.get("error") is not None else "chart"
 
 
+# invokes agent 2
 def chart(state: GraphState, config: RunnableConfig) -> GraphState:
     started = perf_counter()
     pipeline_id = state.get("pipeline_run_id")
@@ -253,8 +255,8 @@ def assemble(state: GraphState) -> GraphState:
 
 def build_graph():
     builder = StateGraph(GraphState, input_schema=GraphInput, output_schema=Result)
-    builder.add_node("prepare", prepare)
-    builder.add_node("chart", chart)
+    builder.add_node("prepare", prepare)  # agent 1
+    builder.add_node("chart", chart)  # agent 2
     builder.add_node("assemble", assemble)
     builder.add_edge(START, "prepare")
     builder.add_conditional_edges("prepare", route_preparation)
