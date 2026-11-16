@@ -1,0 +1,14 @@
+[project]
+name = "adk-langgraph-a2a"
+version = "0.1.0"
+description = "Examples combining Google ADK, LangGraph, and the A2A protocol."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk",
+    "google-adk",
+    "langgraph",
+]
+
+[tool.uv]
+package = false
