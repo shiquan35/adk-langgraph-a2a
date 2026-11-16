@@ -31,3 +31,11 @@ _Avoid_: Transaction date
 **Unit price**:
 The amount charged for one unit of a product; the dataset does not specify a currency.
 _Avoid_: Cost, order total
+
+**Sales amount**:
+The sum of each sales order's quantity multiplied by its unit price; its currency is unspecified by the dataset.
+_Avoid_: Revenue (unless revenue recognition and currency are established), order total
+
+**Monthly sales amount**:
+Sales amount grouped by the calendar month of the order placement date; months without orders are not represented.
+_Avoid_: Monthly revenue
