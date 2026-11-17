@@ -8,7 +8,35 @@ dependencies = [
     "a2a-sdk",
     "google-adk",
     "langgraph",
+    "pandas",
+    "plotly",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+sales-data = "sales_data_agent.cli:main"
+sales-chart = "sales_chart_agent.cli:main"
+sales-pipeline = "sales_pipeline_agent.cli:main"
+
+[dependency-groups]
+dev = ["pandas-stubs", "pyright", "pytest", "ruff"]
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["sales_data_agent", "sales_chart_agent", "sales_pipeline_agent"]
+module-root = "langgraph/src"
+
+[tool.pytest.ini_options]
+testpaths = ["langgraph/tests"]
+
+[tool.pyright]
+include = ["langgraph/src", "langgraph/tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+target-version = "py311"
