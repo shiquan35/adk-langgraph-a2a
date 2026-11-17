@@ -1,4 +1,5 @@
 # adk-langgraph-a2a
+
 Build agents using Google ADK, LangGraph and using Google A2A protocol.
 
 ## Set up
@@ -23,3 +24,16 @@ example `uv run python --version`.
 Commit both `pyproject.toml` and `uv.lock` so everyone gets the same resolved
 dependency versions. Use `uv lock --upgrade` when you intentionally want to
 refresh locked versions.
+
+
+## Run workflow
+
+### LangGraph
+```bash
+uv run sales-pipeline
+```
+
+### Google ADK
+```bash
+uv run adk-sales run
+```
