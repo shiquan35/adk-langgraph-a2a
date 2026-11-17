@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "a2a-sdk",
-    "google-adk",
+    "google-adk>=2.14,<2.15",
     "langgraph",
     "pandas",
     "plotly",
@@ -16,23 +16,31 @@ dependencies = [
 sales-data = "sales_data_agent.cli:main"
 sales-chart = "sales_chart_agent.cli:main"
 sales-pipeline = "sales_pipeline_agent.cli:main"
+adk-sales = "adk_sales_workflow.cli:main"
 
 [dependency-groups]
 dev = ["pandas-stubs", "pyright", "pytest", "ruff"]
 
 [build-system]
-requires = ["uv_build>=0.9.21,<0.10"]
-build-backend = "uv_build"
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
 
-[tool.uv.build-backend]
-module-name = ["sales_data_agent", "sales_chart_agent", "sales_pipeline_agent"]
-module-root = "langgraph/src"
+[tool.hatch.build.targets.wheel]
+packages = [
+    "langgraph/src/sales_data_agent",
+    "langgraph/src/sales_chart_agent",
+    "langgraph/src/sales_pipeline_agent",
+    "adk/src/adk_sales_workflow",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["langgraph/src", "adk/src", "README.md", "pyproject.toml"]
 
 [tool.pytest.ini_options]
-testpaths = ["langgraph/tests"]
+testpaths = ["langgraph/tests", "adk/tests"]
 
 [tool.pyright]
-include = ["langgraph/src", "langgraph/tests"]
+include = ["langgraph/src", "langgraph/tests", "adk/src", "adk/tests"]
 pythonVersion = "3.11"
 typeCheckingMode = "standard"
 venvPath = "."

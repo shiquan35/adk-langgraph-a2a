@@ -18,7 +18,7 @@
 | Choice | State and runner | Store JSON-safe stage envelopes in temporary invocation state; run through ADK `Runner` with in-memory sessions | Preserve provenance without cross-run leakage or persistent infrastructure. |
 | Choice | CLI | Register `adk-sales run`, `adk-sales ingest`, and `adk-sales chart` | Support the full workflow and standalone stages. |
 | Choice | Paths | CSV defaults to `dataset/shared_sales_dataset.csv`; outputs default to `adk/outputs`; all relative paths resolve from repository root; accept `--csv-path` and `--output-dir` overrides | Match existing CLI path conventions while keeping ADK artifacts together. |
-| Choice | Artifacts | Use `monthly_sales_amount.html` and `monthly_sales_amount.json`; atomically replace each on successful charting only | Preserve old artifacts on failure; pairwise atomicity is not promised. |
+| Choice | Artifacts | Use `monthly_sales_amount.html` and `monthly_sales_amount.json`; stage both, then atomically replace HTML followed by JSON on successful charting only | Prepublication failures preserve old artifacts; an earlier successful replacement remains changed if a later replacement fails. Pairwise atomicity is not promised. |
 | Choice | CLI results | Print compact JSON to stdout; send diagnostics to stderr. Completed and warning runs exit 0; failures exit 2. | Keep shell integration machine-readable without treating partial data as process failure. |
 | Choice | Packaging | First prove whether current `uv_build` can include both source roots; if not, use Hatchling explicit package selection for existing `langgraph/src/*_agent` packages and `adk/src/adk_sales_workflow` | Avoid an unnecessary backend migration; preserve existing script imports and verify wheel/sdist before feature work. |
 
@@ -46,7 +46,7 @@ adk-sales run [--csv-path ...] [--output-dir ...]
            │
            ├── stdout: parent JSON
            ├── success/warning: HTML + result JSON
-           └── failure: preserve prior artifacts
+           └── failure: preserve artifacts not already replaced
 ```
 
 The full parent envelope is `{status, preparation_result, chart_result, error}`. The chart node receives the complete prepared-result mapping, not prose or an intermediate file. `error` is null or `{stage, code, message}`, where `stage` is `preparation`, `chart`, or `artifact_write`. On a stage exception, keep any earlier child result, leave the throwing stage result null, and log traceback to stderr. On artifact-write failure, preserve the successful in-memory chart result and report the persistence failure in the parent error.
@@ -68,7 +68,7 @@ The full parent envelope is `{status, preparation_result, chart_result, error}`.
 - Validate real `YYYY-MM-DD` dates; positive whole quantities; positive exact-cent `Decimal` prices (no rounding); catalog labels and product/category pairs; unique trimmed case-sensitive order IDs. Quarantine every row in a duplicate-ID group.
 - Chart stage verifies preparation status, record/quarantine arrays, report counts, and each record. Reject failed/unknown/contradictory status, malformed records, and zero valid records; never silently drop chart input rows.
 - Sum `quantity × unit_price` by order-date calendar month with `Decimal`, chronologically, omitting months without orders. Render offline Plotly titled “Monthly Sales Amount”, axes “Order month” and “Sales amount”, no currency symbol. Partial charts disclose quarantined-row count.
-- File failure or zero valid records skips charting. Partial valid data charts with `completed_with_warnings`. Preserve existing HTML/JSON outputs on failure.
+- File failure or zero valid records skips charting. Partial valid data charts with `completed_with_warnings`. Failures before publication preserve existing HTML/JSON outputs; a publication failure leaves any earlier successful replacement in place and the other artifact unchanged.
 
 ## Implementation Plan
 
@@ -78,9 +78,9 @@ The full parent envelope is `{status, preparation_result, chart_result, error}`.
 | `adk/tests/test_adk_workflow_smoke.py` | Add a minimal two-node ADK `Workflow` + `Runner` smoke test against the pinned API. |
 | `pyproject.toml` (only if needed) | Prove existing `uv_build` package discovery for both roots; if unsupported, test Hatchling's explicit package selection before migrating. |
 
-- [ ] With Google ADK 2.14.x, construct and run a two-node graph through an in-memory `Runner`; verify node inputs, route selection, and terminal output.
-- [ ] Verify whether the current backend can package `langgraph/src` and `adk/src` in one wheel. If not, build a minimal Hatchling wheel/sdist and confirm existing package paths and entry-point metadata before changing the backend.
-- [ ] Do not begin stage implementation until both prerequisites pass; keep the verified smoke test as a regression test.
+- [x] With Google ADK 2.14.x, construct and run a two-node graph through an in-memory `Runner`; verify node inputs, route selection, and terminal output.
+- [x] Verify whether the current backend can package `langgraph/src` and `adk/src` in one wheel. If not, build a minimal Hatchling wheel/sdist and confirm existing package paths and entry-point metadata before changing the backend.
+- [x] Do not begin stage implementation until both prerequisites pass; keep the verified smoke test as a regression test.
 
 ### Phase 1: Package ADK stages and deterministic contracts
 | File | What changes |
@@ -90,8 +90,8 @@ The full parent envelope is `{status, preparation_result, chart_result, error}`.
 | `adk/tests/test_stages.py` | Cover valid, partial, invalid, empty, and structural-failure cases; compare contracts with LangGraph. |
 | `adk/README.md` | Document deterministic stages, commands, defaults, and no-LLM requirement. |
 
-- [ ] Implement both standalone deterministic stages and their JSON-safe results.
-- [ ] Verify stage contracts against existing LangGraph behavior.
+- [x] Implement both standalone deterministic stages and their JSON-safe results.
+- [x] Verify stage contracts against existing LangGraph behavior.
 
 ### Phase 2: ADK graph, runner, and CLI
 | File | What changes |
@@ -101,16 +101,18 @@ The full parent envelope is `{status, preparation_result, chart_result, error}`.
 | `adk/tests/test_workflow.py`, `test_cli.py` | Cover stage routing, exceptions, output preservation, CLI contracts, and invocation isolation. |
 | `docs/adr/0001-adk-workflow-and-package-layout.md` | Record graph API and multi-root packaging decision. |
 
-- [ ] Verify the chart stage runs once only for usable preparation and retains both child results.
-- [ ] Build wheel and sdist; inspect contents and test all imports/entry points in a clean environment.
-- [ ] If the backend changes, re-run the Phase 0 packaging checks and confirm the three existing LangGraph commands still work.
+- [x] Verify the chart stage runs once only for usable preparation and retains both child results.
+- [x] Build wheel and sdist; inspect contents and test all imports/entry points in a clean environment.
+- [x] If the backend changes, re-run the Phase 0 packaging checks and confirm the three existing LangGraph commands still work.
+
+Completion evidence: the regression suite passed 238 tests before the new path-discovery coverage; use the current test run for the final total. The main verification run also confirmed a clean-installed wheel outside the checkout: with `ADK_SALES_ROOT` set, the supplied dataset completed the ADK workflow end-to-end, and help checks passed for all four console commands, exercising their entry-point imports.
 
 ## Acceptance Criteria
 
 - `uv run adk-sales run` processes the 500-row fixture, returns `completed`, and creates the offline HTML plus full parent JSON under `adk/outputs`.
 - CLI path overrides work from another working directory; existing `sales-data`, `sales-chart`, and `sales-pipeline` commands remain usable after packaging changes.
 - Invalid rows are quarantined; chartable partial data produces an annotated chart and warning status. Structural file failure or zero valid records skips charting and preserves existing artifacts.
-- The workflow uses ADK graph routing and invocation-scoped JSON-safe state; stage results and parent error match the agreed envelope. Each stage also runs independently through its CLI subcommand.
+- The workflow uses ADK graph routing and invocation-scoped JSON-safe state; stage results and parent error match the agreed envelope, including the accepted `artifact_write` error stage for publication failures. Each stage also runs independently through its CLI subcommand.
 - A two-node integration smoke test runs through ADK `Runner` on the pinned version, covering graph construction, routing, input handoff, and terminal output.
 - No OpenAI calls or credentials are required. No run's stage data leaks into a later invocation.
 - Wheel/sdist include all existing and ADK packages; CLI entry points import successfully. Tests, Pyright, and Ruff pass for ADK and existing code.
@@ -151,7 +153,7 @@ Use structured stderr logs with a per-invocation `run_id`. Do not log full CSVs,
 
 ## Risks & Unknowns
 
-- Current `uv_build` uses one `module-root`; verify its actual capability before migrating. If it cannot package both source roots, prove Hatchling wheel/sdist contents and installed CLI targets before the backend change and again before merging.
+- The former `uv_build` configuration used one `module-root`; Hatchling now packages both source roots. Wheel/sdist inspection and clean-installed CLI verification succeeded. Outside a checkout, installed-wheel runs require `ADK_SALES_ROOT`.
 - Self-contained ADK rules duplicate LangGraph logic; parity tests are mandatory.
 - ADK Workflow is a `BaseNode`, not a `BaseAgent`; expose stage commands through Runner roots, not agent-subagent wiring.
 

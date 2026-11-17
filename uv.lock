@@ -55,7 +55,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk" },
-    { name = "google-adk" },
+    { name = "google-adk", specifier = ">=2.14,<2.15" },
     { name = "langgraph" },
     { name = "pandas" },
     { name = "plotly" },
