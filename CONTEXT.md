@@ -39,3 +39,7 @@ _Avoid_: Revenue (unless revenue recognition and currency are established), orde
 **Monthly sales amount**:
 Sales amount grouped by the calendar month of the order placement date; months without orders are not represented.
 _Avoid_: Monthly revenue
+
+**Prepared sales result**:
+The outcome of preparing sales data, including accepted sales orders, quarantined rows, and a report of the preparation. It may contain complete or partial data, or describe a failed preparation.
+_Avoid_: Cleaned data (when the result also includes rejected rows and provenance)
